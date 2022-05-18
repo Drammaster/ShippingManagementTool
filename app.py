@@ -1,10 +1,20 @@
-from re import S
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import firestore
+
 from flask import Flask, request, Response
 
 import json
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+cred = credentials.Certificate('firebase_cred.json')
+firebase_admin.initialize_app(cred, {
+    'projectId': 'orders-d4f43',
+})
+
+db = firestore.client()
 
 def address_validator(address): #Return True if address is in a valid format
     if "Unit" not in address:
@@ -87,3 +97,47 @@ def place_order():
 @app.route('/order', methods=['GET'])
 def order():
     data = json.loads(request.data)
+
+
+@app.route('/firebase', methods=['POST'])
+def firebase():
+    order = json.loads(request.data)
+
+    doc_collection = db.collection(order['OrderId'])
+
+    doc_ref = doc_collection.document(u'order-details')
+    doc_ref.set({
+        u'RequestedPickupTime': order['RequestedPickupTime'],
+        u'PickupInstructions': order['PickupInstructions'],
+        u'DeliveryInstructions': order['DeliveryInstructions'],
+    })
+
+    doc_ref = doc_collection.document(u'PickupAddress')
+    doc_ref.set({
+        u'Unit': order['PickupAddress']['Unit'],
+        u'Street': order['PickupAddress']['Street'],
+        u'Suburb': order['PickupAddress']['Suburb'],
+        u'City': order['PickupAddress']['City'],
+        u'Postcode': order['PickupAddress']['Postcode'],
+    })
+
+    doc_ref = doc_collection.document(u'DeliveryAddress')
+    doc_ref.set({
+        u'Unit': order['DeliveryAddress']['Unit'],
+        u'Street': order['DeliveryAddress']['Street'],
+        u'Suburb': order['DeliveryAddress']['Suburb'],
+        u'City': order['DeliveryAddress']['City'],
+        u'Postcode': order['DeliveryAddress']['Postcode'],
+    })
+
+    doc_ref = doc_collection.document(u'Items')
+
+    for i in order['Items']:
+        doc_ref.set({
+            i['ItemCode']: i['Quantity'],
+        }, merge=True)
+
+
+
+
+    return Response(status=200)

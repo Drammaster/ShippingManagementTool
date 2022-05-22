@@ -1,28 +1,20 @@
-import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import firestore
-
-import requests
 from flask import Flask, request, Response
-import psycopg2
+import psycopg2, json
 
-# try:
-#     import config
-# except:
-HOST = "ec2-54-165-90-230.compute-1.amazonaws.com"
-DATABASE = "d9b43n4vl9j0uv"
-USER = "gkjbbjzwzjmppj"
-PORT = "5432"
-PASSWORD = "1cccdd63ad5416a76bf858006354e49d663055971c0ecd34edf3b1810d89302e"
-DATABASE_URL = "postgres://gkjbbjzwzjmppj:1cccdd63ad5416a76bf858006354e49d663055971c0ecd34edf3b1810d89302e@ec2-54-165-90-230.compute-1.amazonaws.com:5432/d9b43n4vl9j0uv"
+try:
+    from config import DATABASE_URL, USERNAME, PASSWORD
+except:
+    import os
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    USERNAME = os.environ.get('USERNAME')
+    PASSWORD = os.environ.get('PASSWORD')
 
-import json
+import database
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 conn = psycopg2.connect(
-    # database=DATABASE, user=USER, password=PASSWORD, host=HOST, port=PORT
     DATABASE_URL
 )
 
@@ -30,64 +22,12 @@ conn.autocommit = True
 
 cursor = conn.cursor()
 
-sql_init = '''
-CREATE TABLE IF NOT EXISTS ORDERS(
-   ORDER_ID CHAR(20) NOT NULL,
-   REQUESTED_PICKUP_TIME CHAR(50) NOT NULL,
-   PICKUP_INSTRUCTIONS CHAR(255),
-   DELIVERY_INSTRUCTIONS CHAR(255),
-   PRIMARY KEY(ORDER_ID)
-);
-
-CREATE TABLE IF NOT EXISTS DELIVERY_ADDRESS(
-   ORDER_ID CHAR(20) NOT NULL,
-   UNIT CHAR(20) NOT NULL,
-   STREET CHAR(50),
-   SUBURB CHAR(50),
-   CITY CHAR(255),
-   POSTCODE CHAR(20),
-   CONSTRAINT fk_order
-    FOREIGN KEY(ORDER_ID)
-        REFERENCES ORDERS(ORDER_ID)
-        ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS PICKUP_ADDRESS(
-   ORDER_ID CHAR(20) NOT NULL,
-   UNIT CHAR(20) NOT NULL,
-   STREET CHAR(50),
-   SUBURB CHAR(50),
-   CITY CHAR(255),
-   POSTCODE CHAR(20),
-   CONSTRAINT fk_order
-    FOREIGN KEY(ORDER_ID)
-        REFERENCES ORDERS(ORDER_ID)
-        ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS ITEMS(
-   ITEM_ID CHAR(20) NOT NULL,
-   ORDER_ID CHAR(20) NOT NULL,
-   QUANTITY CHAR(20),
-   PRIMARY KEY(ITEM_ID),
-   CONSTRAINT fk_order
-    FOREIGN KEY(ORDER_ID)
-        REFERENCES ORDERS(ORDER_ID)
-        ON DELETE CASCADE
-);
-'''
-
-cursor.execute(sql_init)
+cursor.execute(database.sql_init)
 
 
 def create_order(order):
-    order_sql = '''
-    INSERT INTO ORDERS(ORDER_ID, REQUESTED_PICKUP_TIME, PICKUP_INSTRUCTIONS, DELIVERY_INSTRUCTIONS)
-    VALUES (%s,%s,%s,%s)
-    '''
-
     try:
-        cursor.execute(order_sql, (order['OrderId'], order['RequestedPickupTime'], order['PickupInstructions'], order['DeliveryInstructions']))
+        cursor.execute(database.create_order_sql, (order['OrderId'], order['RequestedPickupTime'], order['PickupInstructions'], order['DeliveryInstructions']))
     except:
         pass
 
@@ -98,28 +38,19 @@ def create_order(order):
 
 
 def create_del_address(order_id, del_address):
-    del_address_sql = '''
-    INSERT INTO DELIVERY_ADDRESS(ORDER_ID, UNIT, STREET, SUBURB, CITY, POSTCODE)
-    VALUES (%s,%s,%s,%s,%s,%s)
-    '''
+    cursor.execute(database.create_delivery_address_sql, (order_id, del_address['Unit'], del_address['Street'], del_address['Suburb'], del_address['City'], del_address['Postcode']))
 
-    cursor.execute(del_address_sql, (order_id, del_address['Unit'], del_address['Street'], del_address['Suburb'], del_address['City'], del_address['Postcode']))
 
 def create_pic_address(order_id, pic_address):
-    pic_address_sql = '''
-    INSERT INTO PICKUP_ADDRESS(ORDER_ID, UNIT, STREET, SUBURB, CITY, POSTCODE)
-    VALUES (%s,%s,%s,%s,%s,%s)
-    '''
+    cursor.execute(database.create_pickup_address_sql, (order_id, pic_address['Unit'], pic_address['Street'], pic_address['Suburb'], pic_address['City'], pic_address['Postcode']))
 
-    cursor.execute(pic_address_sql, (order_id, pic_address['Unit'], pic_address['Street'], pic_address['Suburb'], pic_address['City'], pic_address['Postcode']))
 
 def create_item(order_id, item):
-    item_sql = '''
-    INSERT INTO ITEMS(ITEM_ID, ORDER_ID, QUANTITY)
-    VALUES (%s,%s,%s)
-    '''
+    try:
+        cursor.execute(database.create_item_sql, (item['ItemCode'], order_id, item['Quantity']))
+    except:
+        pass
 
-    cursor.execute(item_sql, (item['ItemCode'], order_id, item['Quantity']))
 
 def address_validator(address): #Return True if address is in a valid format
     if "Unit" not in address:
@@ -189,16 +120,16 @@ def order_format_check(order): #Return True if order is in a valid format
 def place_order():
     order = json.loads(request.data)
 
-    
-    url = "https://postman-echo.com/basic-auth"
-    header = {"Authorization" : "Basic cG9zdG1hbjpwYXNzd29yZA=="}
-    response = requests.get(url, headers=header)
-    print(response.status_code)
-    print(response.json())
+    auth_gotten = request.authorization
 
-    create_order(order)
+    if USERNAME != auth_gotten['username'] or PASSWORD != auth_gotten['password']:
+        return Response(status=401)
+    else:
 
-    return Response(status=200) # OK
+        create_order(order)
+
+        return Response(status=202) # OK
+
     # return Response(status=202) # ACCAPTED
 
     # return Response(status=403) # NOT AUTHENTICATED
@@ -209,64 +140,140 @@ def place_order():
     # return order_format_check(order)
 
 
-@app.route('/order', methods=['GET'])
-def order():
+@app.route('/get_order', methods=['GET'])
+def get_order():
     data = json.loads(request.data)
 
-    doc_ref = db.collection(data['OrderId'])
+    order_sql = '''
+    SELECT * FROM ORDERS
+    WHERE Order_id LIKE '%{0}%'
+    '''.format(data['OrderId'])
+    
+    pick_address_sql = '''
+    SELECT * FROM PICKUP_ADDRESS
+    WHERE Order_id LIKE '%{0}%'
+    '''.format(data['OrderId'])
+    
+    deliv_address_sql = '''
+    SELECT * FROM DELIVERY_ADDRESS
+    WHERE Order_id LIKE '%{0}%'
+    '''.format(data['OrderId'])
+    
+    items_sql = '''
+    SELECT * FROM ITEMS
+    WHERE Order_id LIKE '%{0}%'
+    '''.format(data['OrderId'])
 
-    doc = doc_ref.get()
-    # if doc.exists:
-    for i in doc:
-        print(i)
-    # print(doc)
-    # else:
-    #     print(u'No such document!')
+    cursor.execute(order_sql)
+    order = cursor.fetchone()
 
-    return Response(status=200)
+    if order == None:
+        return "Order does not exist"
+    else:
+        cursor.execute(pick_address_sql)
+        pick_address = cursor.fetchone()
+
+        cursor.execute(deliv_address_sql)
+        deliv_address = cursor.fetchone()
+
+
+        items_list = []
+        cursor.execute(items_sql)
+        items = cursor.fetchall()
+
+        for i in items:
+            items_list.append({
+                "ItemCode": i[0].rstrip(),
+                "Quantity": i[2].rstrip()
+            })
+
+        order_format = { 
+            "OrderId": order[0].rstrip(),
+            "RequestedPickupTime" : order[1].rstrip(),
+            "PickupAddress":
+                {
+                    "Unit": pick_address[1].rstrip(),
+                    "Street": pick_address[2].rstrip(),
+                    "Suburb": pick_address[3].rstrip(),
+                    "City": pick_address[4].rstrip(),
+                    "Postcode": pick_address[5].rstrip()
+                },
+            "DeliveryAddress":
+                {
+                    "Unit": deliv_address[1].rstrip(),
+                    "Street": deliv_address[2].rstrip(),
+                    "Suburb": pick_address[3].rstrip(),
+                    "City": deliv_address[4].rstrip(),
+                    "Postcode": deliv_address[5].rstrip()
+                },
+            "Items": items_list,
+            "PickupInstructions": order[2].rstrip(),
+            "DeliveryInstructions": order[3].rstrip()
+        }
+
+        return order_format
 
 
 @app.route('/all_orders', methods=['GET'])
 def all_orders():
-    all_orders = db.collection('orders').get()
+    all_orders_list = []
 
-    print(all_orders)
+    cursor.execute('''SELECT * FROM ORDERS''')
+    all_orders = cursor.fetchall()
 
-    return Response(status=200)
+    cursor.execute('''SELECT * FROM PICKUP_ADDRESS''')
+    all_picup_address = cursor.fetchall()
 
+    cursor.execute('''SELECT * FROM DELIVERY_ADDRESS''')
+    all_delivery_address = cursor.fetchall()
 
-@app.route('/firebase', methods=['POST'])
-def firebase():
-    order = json.loads(request.data)
+    cursor.execute('''SELECT * FROM ITEMS''')
+    all_items = cursor.fetchall()
 
-    db_collection = db.collection(u'orders')
+    for order in all_orders:
+        p_count = 0
+        d_count = 0
+        i_count = 0
 
-    db_order = db_collection.document(order['OrderId'])
+        for p_address in all_picup_address:
+            if p_address[0].rstrip() == order[0].rstrip():
+                pick_address = all_picup_address.pop(p_count)
 
-    db_order.set({
-        u'RequestedPickupTime': order['RequestedPickupTime'],
-        u'PickupInstructions': order['PickupInstructions'],
-        u'DeliveryInstructions': order['DeliveryInstructions'],
-    })
+            p_count += 1
+        
+        for d_address in all_delivery_address:
+            if d_address[0].rstrip() == order[0].rstrip():
+                deliv_address = all_delivery_address.pop(d_count)
+                
+            d_count += 1
+        
+        order_format = { 
+            "OrderId": order[0].rstrip(),
+            "RequestedPickupTime" : order[1].rstrip(),
+            "PickupAddress":
+                {
+                    "Unit": pick_address[1].rstrip(),
+                    "Street": pick_address[2].rstrip(),
+                    "Suburb": pick_address[3].rstrip(),
+                    "City": pick_address[4].rstrip(),
+                    "Postcode": pick_address[5].rstrip()
+                },
+            "DeliveryAddress":
+                {
+                    "Unit": deliv_address[1].rstrip(),
+                    "Street": deliv_address[2].rstrip(),
+                    "Suburb": deliv_address[3].rstrip(),
+                    "City": deliv_address[4].rstrip(),
+                    "Postcode": deliv_address[5].rstrip()
+                },
+            "Items": [],
+            "PickupInstructions": order[2].rstrip(),
+            "DeliveryInstructions": order[3].rstrip()
+        }
 
-    db_order.collection(u'PickupAddress').document(u'detials').set({
-        u'Unit': order['PickupAddress']['Unit'],
-        u'Street': order['PickupAddress']['Street'],
-        u'Suburb': order['PickupAddress']['Suburb'],
-        u'City': order['PickupAddress']['City'],
-        u'Postcode': order['PickupAddress']['Postcode'],
-    })
-    db_order.collection(u'DeliveryAddress').document(u'detials').set({
-        u'Unit': order['DeliveryAddress']['Unit'],
-        u'Street': order['DeliveryAddress']['Street'],
-        u'Suburb': order['DeliveryAddress']['Suburb'],
-        u'City': order['DeliveryAddress']['City'],
-        u'Postcode': order['DeliveryAddress']['Postcode'],
-    })
+        all_orders_list.append(order_format)
 
-    for i in order['Items']:
-        db_order.collection(u'Items').document(i['ItemCode']).set({
-            u'Quantity': i['Quantity'],
-        })
+    print(all_orders_list)
 
+    
     return Response(status=200)

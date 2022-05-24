@@ -2,21 +2,24 @@ from flask import Flask, request, Response
 import psycopg2, json
 
 try:
-    from config import DATABASE_URL, USERNAME, PASSWORD
+    from ..config import DATABASE_URL, USERNAME, PASSWORD
+    print("test")
+    conn = psycopg2.connect(
+        dbname="netlogix", user="postgres", password="root", host="db", port="5432"
+    )
 except:
     import os
     DATABASE_URL = os.environ.get('DATABASE_URL')
     USERNAME = os.environ.get('USERNAME')
     PASSWORD = os.environ.get('PASSWORD')
+    conn = psycopg2.connect(
+        DATABASE_URL
+    )
 
 import database
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
-
-conn = psycopg2.connect(
-    DATABASE_URL
-)
 
 conn.autocommit = True
 

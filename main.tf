@@ -12,7 +12,7 @@ provider "heroku" {
 }
 
 resource "heroku_app" "netlogix" {
-  name   = "dram-order-manager"
+  name   = "dram-dev-order-manager"
   region = "us"
 
   config_vars = {

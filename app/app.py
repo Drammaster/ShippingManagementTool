@@ -53,14 +53,17 @@ def place_order():
     order = json.loads(request.data)
 
     auth_gotten = request.authorization
-
-    if USERNAME != auth_gotten['username'] or PASSWORD != auth_gotten['password']:
+    
+    if auth_gotten == None:
         return Response(status=401)
     else:
+        if USERNAME != auth_gotten['username'] or PASSWORD != auth_gotten['password']:
+            return Response(status=401)
+        else:
 
-        create_order(order)
+            create_order(order)
 
-        return Response(status=202) # OK
+            return Response(status=202) # OK
 
     # return Response(status=202) # ACCAPTED
 
@@ -156,63 +159,8 @@ def all_orders():
     for i in all_orders:
         all_order_ids.append(i['OrderId'].rstrip())
 
-    # cursor.execute('''SELECT * FROM PICKUP_ADDRESS''')
-    # all_picup_address = cursor.fetchall()
-
-    # cursor.execute('''SELECT * FROM DELIVERY_ADDRESS''')
-    # all_delivery_address = cursor.fetchall()
-
-    # cursor.execute('''SELECT * FROM ITEMS''')
-    # all_items = cursor.fetchall()
-
-    # for order in all_orders:
-    #     p_count = 0
-    #     d_count = 0
-    #     i_count = 0
-
-    #     for p_address in all_picup_address:
-    #         if p_address[0].rstrip() == order[0].rstrip():
-    #             pick_address = all_picup_address.pop(p_count)
-
-    #         p_count += 1
-        
-    #     for d_address in all_delivery_address:
-    #         if d_address[0].rstrip() == order[0].rstrip():
-    #             deliv_address = all_delivery_address.pop(d_count)
-                
-    #         d_count += 1
-        
-        # order_format = { 
-        #     "OrderId": order[0].rstrip(),
-        #     "RequestedPickupTime" : order[1].rstrip(),
-        #     "PickupAddress":
-        #         {
-        #             "Unit": pick_address[1].rstrip(),
-        #             "Street": pick_address[2].rstrip(),
-        #             "Suburb": pick_address[3].rstrip(),
-        #             "City": pick_address[4].rstrip(),
-        #             "Postcode": pick_address[5].rstrip()
-        #         },
-        #     "DeliveryAddress":
-        #         {
-        #             "Unit": deliv_address[1].rstrip(),
-        #             "Street": deliv_address[2].rstrip(),
-        #             "Suburb": deliv_address[3].rstrip(),
-        #             "City": deliv_address[4].rstrip(),
-        #             "Postcode": deliv_address[5].rstrip()
-        #         },
-        #     "Items": [],
-        #     "PickupInstructions": order[2].rstrip(),
-        #     "DeliveryInstructions": order[3].rstrip()
-        # }
-
-    #     all_orders_list.append(order_format)
-
-    # print(all_orders_list)
-
-    
-    return Response(status=200)
+    return all_order_ids
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

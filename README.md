@@ -92,9 +92,9 @@ As this is a Heroku Terraform you will need to have a Heroku account created. On
 
 The application has Three end points which can be interacted with by sending POST and GET requests to them.
 
-* /
-* /
-* /
+* /place_order
+* /get_order
+* /all_orders
 
 For use and real time testing I have used [Insomnia](https://insomnia.rest). [Postman](https://www.postman.com) is another tool that can also be used in place of [Insomnia](https://insomnia.rest)
 

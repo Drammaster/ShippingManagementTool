@@ -26,3 +26,12 @@
     <li><a href="#usage">Usage</a></li>
   </ol>
 </details>
+
+
+### Built With
+
+* [Python](https://python.org/)
+* [Heroku](https://heroku.com/)
+* [Postgresql](https://postgresql.org/)
+
+<p align="right">(<a href="#top">back to top</a>)</p>

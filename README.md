@@ -45,8 +45,6 @@
 * Python <br>
   To install python [click here](https://www.python.org/downloads/), select the download option for the appropriate operating system you are using and follow the installation instructions.
 
-* Pip <br>
-
 * Terraform <br>
   To install terraform [click here](https://www.terraform.io/downloads), select the download option for the appropriate operating system you are using and follow the installation instructions.
 
@@ -92,11 +90,26 @@ As this is a Heroku Terraform you will need to have a Heroku account created. On
 
 The application has Three end points which can be interacted with by sending POST and GET requests to them.
 
-* /place_order
-* /get_order
-* /all_orders
+* https://csaba-netlogix-order-manager.herokuapp.com/place_order
+* https://csaba-netlogix-order-manager.herokuapp.com/get_order
+* https://csaba-netlogix-order-manager.herokuapp.com/all_orders
 
 For use and real time testing I have used [Insomnia](https://insomnia.rest). [Postman](https://www.postman.com) is another tool that can also be used in place of [Insomnia](https://insomnia.rest)
+
+1. All request will need to have Basic Auth setup
+<br> <img src="https://raw.githubusercontent.com/Drammaster/ShippingManagementTool/main/images/insomnia_basic_auth.PNG">
+
+2. Placing orders with [Insomnia](https://insomnia.rest)
+<br> Create a new POST request with a JSON body and place in the order that you would like to be posted and click SEND
+<br> <img src="https://raw.githubusercontent.com/Drammaster/ShippingManagementTool/main/images/insomnia_place_order.PNG">
+
+3. Get an Order by it's Id
+<br> Create a new GET request with a JSON body and place in the Order ID that you would like to retrive from the database and click SEND
+<br> <img src="https://raw.githubusercontent.com/Drammaster/ShippingManagementTool/main/images/insomnia_get_order.PNG">
+
+4. Get all exist Order Ids
+<br> Create a new GET request with a no body and click SEND
+<br> <img src="https://raw.githubusercontent.com/Drammaster/ShippingManagementTool/main/images/insomnia_all_orders.PNG">
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>

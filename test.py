@@ -53,7 +53,7 @@ class TestCases(unittest.TestCase):
             }
         ))
 
-    def test_items(self):
+    def test_item_validator(self):
         self.assertTrue(validators.item_validator(
             {
                 "ItemCode": "AMZ-01",
@@ -76,8 +76,13 @@ class TestCases(unittest.TestCase):
                 "ItemCode": "AMZ-02"
             }
         ))
+        self.assertFalse(validators.item_validator(
+            {
+                "FastFood": "KFC"
+            }
+        ))
 
-    def test_order_format(self):
+    def test_order_format_check(self):
         self.assertTrue(validators.order_format_check(
             { 
                 "OrderId": "CH-1001",
@@ -90,7 +95,7 @@ class TestCases(unittest.TestCase):
                         "City": "Auckland",
                         "Postcode": "1072"
                     },
-            "DeliveryAddress":
+                "DeliveryAddress":
                     {
                         "Unit": "35",
                         "Street": "Over the hill street",
@@ -98,7 +103,7 @@ class TestCases(unittest.TestCase):
                         "City": "Shelbyville",
                         "Postcode": "2013"
                     },
-            "Items": [
+                "Items": [
                     {
                     "ItemCode": "AMZ-02",
                     "Quantity": 1
@@ -108,7 +113,112 @@ class TestCases(unittest.TestCase):
                 "DeliveryInstructions": "Place infront of the door"
             }
         ))
+        self.assertTrue(validators.order_format_check(
+            { 
+                "OrderId": "DE-20",
+                "RequestedPickupTime" : "2022/05/19 07:00:00",
+                "PickupAddress":
+                    {
+                        "Unit": "174",
+                        "Street": "West Tamaki Road",
+                        "Suburb": "Glendowie",
+                        "City": "Auckland",
+                        "Postcode": "1072"
+                    },
+                "DeliveryAddress":
+                    {
+                        "Unit": "35",
+                        "Street": "Over the hill street",
+                        "Suburb": "Mountaintop Place",
+                        "City": "Shelbyville",
+                        "Postcode": "2013"
+                    },
+                "Items": [
+                    {
+                    "ItemCode": "AMZ-02",
+                    "Quantity": 1
+                    },
+                    {
+                    "ItemCode": "AMZ-200",
+                    "Quantity": 100
+                    },
+                ],
+                "PickupInstructions": "Quickly Please",
+                "DeliveryInstructions": "Throw through window"
+            }
+        ))
+        self.assertFalse(validators.order_format_check(
+            { 
+                "OrderId": "DE-20",
+                "RequestedPickupTime" : "2022/05/19 07:00:00",
+                "PickupAddress":
+                    {
+                        "Unit": "174",
+                        "Street": "West Tamaki Road",
+                        "Suburb": "Glendowie",
+                        "City": "Auckland",
+                        "Postcode": "1072"
+                    },
+                "DeliveryAddress":
+                    {
+                        "Unit": "35",
+                        "Street": "Over the hill street",
+                        "Suburb": "Mountaintop Place",
+                        "City": "Shelbyville",
+                        "Postcode": "2013"
+                    },
+                "Items": [
+                    {
+                    "ItemCode": "AMZ-02",
+                    "Quantity": 1
+                    },
+                    {
+                    "ItemCode": "AMZ-200",
+                    "Quantity": 100
+                    },
+                ],
+                "PickupInstructions": "Quickly Please"
+            }
+        ))
+        self.assertFalse(validators.order_format_check(
+            { 
+                "OrderId": "DE-20",
+                "PickupAddress":
+                    {
+                        "Unit": "174",
+                        "Street": "West Tamaki Road",
+                        "Suburb": "Glendowie",
+                        "City": "Auckland",
+                        "Postcode": "1072"
+                    },
+                "DeliveryAddress":
+                    {
+                        "Unit": "35",
+                        "Street": "Over the hill street",
+                        "Suburb": "Mountaintop Place",
+                        "City": "Shelbyville",
+                        "Postcode": "2013"
+                    },
+                "PickupInstructions": "Quickly Please"
+            }
+        ))
 
+    def test_get_order_validator(self):
+        self.assertTrue(validators.get_order_validator(
+            {
+                "OrderId": "BC-1"
+            }
+        ))
+        self.assertFalse(validators.get_order_validator(
+            {
+                
+            }
+        ))
+        self.assertFalse(validators.get_order_validator(
+            {
+                "Food": "Cheeseburger"
+            }
+        ))
 
 if __name__ == '__main__':
     unittest.main()

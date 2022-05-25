@@ -29,35 +29,41 @@ def item_validator(item): #Return True of item is in a valid format
 
 def order_format_check(order): #Return True if order is in a valid format
     if "OrderId" not in order:
-        return "OrderId missing from order"
+        return False
     
     if "RequestedPickupTime" not in order:
-        return "RequestedPickupTime missing from order"
+        return False
 
     if "PickupAddress" not in order:
-        return "PickupAddress missing from order"
+        return False
     else:
         if not address_validator(order['PickupAddress']):
-            return "Address is invalid"
+            return False
 
     if "DeliveryAddress" not in order:
-        return "DeliveryAddress missing from order"
+        return False
     else:
         if not address_validator(order['DeliveryAddress']):
-            return "Address is invalid"
+            return False
 
     if "Items" not in order:
-        return "Items missing from order"
+        return False
     else:
         for i in order['Items']:
             if not item_validator(i):
-                return "Order contains an invalid item"
+                return False
 
     if "PickupInstructions" not in order:
-        return "PickupInstructions missing from order"
+        return False
     
     if "DeliveryInstructions" not in order:
-        return "DeliveryInstructions missing from order"
+        return False
     
-    return "Thank you for placing your order"
+    return True
 
+
+def get_order_validator(order_id): #Return True if get order is in a valid format
+    if "OrderId" not in order_id:
+        return False
+
+    return True

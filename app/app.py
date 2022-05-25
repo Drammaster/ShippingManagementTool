@@ -6,9 +6,12 @@ import os
 DATABASE_URL = os.environ.get('DATABASE_URL')
 USERNAME = os.environ.get('USERNAME')
 PASSWORD = os.environ.get('PASSWORD')
+
 conn = psycopg2.connect(
     DATABASE_URL
 )
+
+from validators import get_order_validator, order_format_check
 
 
 app = Flask(__name__)
@@ -61,105 +64,124 @@ def place_order():
             return Response(status=401)
         else:
 
-            create_order(order)
+            if order_format_check(order):
+                create_order(order)
 
-            return Response(status=202) # OK
-
-    # return Response(status=202) # ACCAPTED
-
-    # return Response(status=403) # NOT AUTHENTICATED
-
-    # return Response(status=400) # BAD DATA
-    # return Response(status=415) # UNSUPPORTED MEDIA TYPE
-
-    # return order_format_check(order)
+                return Response(status=202)
+            else:
+                return Response(status=400)
 
 
 @app.route('/get_order', methods=['GET'])
 def get_order():
     data = json.loads(request.data)
 
-    order_sql = '''
-    SELECT * FROM ORDERS
-    WHERE Order_id LIKE '%{0}%'
-    '''.format(data['OrderId'])
+    auth_gotten = request.authorization
     
-    pick_address_sql = '''
-    SELECT * FROM PICKUP_ADDRESS
-    WHERE Order_id LIKE '%{0}%'
-    '''.format(data['OrderId'])
-    
-    deliv_address_sql = '''
-    SELECT * FROM DELIVERY_ADDRESS
-    WHERE Order_id LIKE '%{0}%'
-    '''.format(data['OrderId'])
-    
-    items_sql = '''
-    SELECT * FROM ITEMS
-    WHERE Order_id LIKE '%{0}%'
-    '''.format(data['OrderId'])
-
-    cursor.execute(order_sql)
-    order = cursor.fetchone()
-
-    if order == None:
-        return "Order does not exist"
+    if auth_gotten == None:
+        return Response(status=401)
     else:
-        cursor.execute(pick_address_sql)
-        pick_address = cursor.fetchone()
 
-        cursor.execute(deliv_address_sql)
-        deliv_address = cursor.fetchone()
+        if USERNAME != auth_gotten['username'] or PASSWORD != auth_gotten['password']:
+            return Response(status=401)
+        else:
+
+            if get_order_validator(data):
+                order_sql = '''
+                SELECT * FROM ORDERS
+                WHERE Order_id LIKE '%{0}%'
+                '''.format(data['OrderId'])
+                
+                pick_address_sql = '''
+                SELECT * FROM PICKUP_ADDRESS
+                WHERE Order_id LIKE '%{0}%'
+                '''.format(data['OrderId'])
+                
+                deliv_address_sql = '''
+                SELECT * FROM DELIVERY_ADDRESS
+                WHERE Order_id LIKE '%{0}%'
+                '''.format(data['OrderId'])
+                
+                items_sql = '''
+                SELECT * FROM ITEMS
+                WHERE Order_id LIKE '%{0}%'
+                '''.format(data['OrderId'])
+
+                cursor.execute(order_sql)
+                order = cursor.fetchone()
+
+                if order == None:
+                    return "Order does not exist"
+                else:
+                    cursor.execute(pick_address_sql)
+                    pick_address = cursor.fetchone()
+
+                    cursor.execute(deliv_address_sql)
+                    deliv_address = cursor.fetchone()
 
 
-        items_list = []
-        cursor.execute(items_sql)
-        items = cursor.fetchall()
+                    items_list = []
+                    cursor.execute(items_sql)
+                    items = cursor.fetchall()
 
-        for i in items:
-            items_list.append({
-                "ItemCode": i[0].rstrip(),
-                "Quantity": i[2].rstrip()
-            })
+                    for i in items:
+                        items_list.append({
+                            "ItemCode": i[0].rstrip(),
+                            "Quantity": i[2].rstrip()
+                        })
 
-        order_format = { 
-            "OrderId": order[0].rstrip(),
-            "RequestedPickupTime" : order[1].rstrip(),
-            "PickupAddress":
-                {
-                    "Unit": pick_address[1].rstrip(),
-                    "Street": pick_address[2].rstrip(),
-                    "Suburb": pick_address[3].rstrip(),
-                    "City": pick_address[4].rstrip(),
-                    "Postcode": pick_address[5].rstrip()
-                },
-            "DeliveryAddress":
-                {
-                    "Unit": deliv_address[1].rstrip(),
-                    "Street": deliv_address[2].rstrip(),
-                    "Suburb": pick_address[3].rstrip(),
-                    "City": deliv_address[4].rstrip(),
-                    "Postcode": deliv_address[5].rstrip()
-                },
-            "Items": items_list,
-            "PickupInstructions": order[2].rstrip(),
-            "DeliveryInstructions": order[3].rstrip()
-        }
+                    order_format = { 
+                        "OrderId": order[0].rstrip(),
+                        "RequestedPickupTime" : order[1].rstrip(),
+                        "PickupAddress":
+                            {
+                                "Unit": pick_address[1].rstrip(),
+                                "Street": pick_address[2].rstrip(),
+                                "Suburb": pick_address[3].rstrip(),
+                                "City": pick_address[4].rstrip(),
+                                "Postcode": pick_address[5].rstrip()
+                            },
+                        "DeliveryAddress":
+                            {
+                                "Unit": deliv_address[1].rstrip(),
+                                "Street": deliv_address[2].rstrip(),
+                                "Suburb": pick_address[3].rstrip(),
+                                "City": deliv_address[4].rstrip(),
+                                "Postcode": deliv_address[5].rstrip()
+                            },
+                        "Items": items_list,
+                        "PickupInstructions": order[2].rstrip(),
+                        "DeliveryInstructions": order[3].rstrip()
+                    }
 
-        return order_format
+                    return order_format
+            else:
+                return Response(status=400)
 
 
 @app.route('/all_orders', methods=['GET'])
 def all_orders():
-    all_order_ids = []
+    auth_gotten = request.authorization
+    
+    if auth_gotten == None:
+        return Response(status=401)
+    else:
+        
+        if USERNAME != auth_gotten['username'] or PASSWORD != auth_gotten['password']:
+            return Response(status=401)
+        else:
 
-    cursor.execute('''SELECT * FROM ORDERS''')
-    all_orders = cursor.fetchall()
+            all_order_ids = []
 
-    for i in all_orders:
-        all_order_ids.append(i['OrderId'].rstrip())
+            cursor.execute('''SELECT * FROM ORDERS''')
+            all_orders = cursor.fetchall()
 
-    return all_order_ids
+            for i in all_orders:
+                all_order_ids.append(i[0].rstrip())
+
+            all_orders_dict = dict.fromkeys(all_order_ids, "OrderId")
+
+            return all_orders_dict
 
 
 if __name__ == "__main__":

@@ -95,7 +95,7 @@ Use the `BLANK_README.md` to get started.
 As this is a Heroku Terraform you will need to have a Heroku account created. Once you have created a Heroku account head over to your account settings on the top right hand corner of the Heroku Dashboard page, scroll down to the API key section and either Reveal or Generate a new API key.
 
 2. Add Heroku Account Credentials in the main.tf File
-   <img src="images/logo.png">
+   <img src="https://raw.githubusercontent.com/Drammaster/ShippingManagementTool/main/images/terraform_cred.PNG">
 
 1. Run Terraform
    ```sh

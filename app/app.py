@@ -1,14 +1,16 @@
 from flask import Flask, request, Response
 import psycopg2, json
 import database
+import datetime
+
 
 import os
 DATABASE_URL = os.environ.get('DATABASE_URL')
-USERNAME = os.environ.get('USERNAME')
-PASSWORD = os.environ.get('PASSWORD')
+USERNAME = "username"
+PASSWORD = "password"
 
 conn = psycopg2.connect(
-    DATABASE_URL
+    "postgres://gkjbbjzwzjmppj:1cccdd63ad5416a76bf858006354e49d663055971c0ecd34edf3b1810d89302e@ec2-54-165-90-230.compute-1.amazonaws.com:5432/d9b43n4vl9j0uv"
 )
 
 from validators import get_order_validator, order_format_check
@@ -49,6 +51,27 @@ def create_item(order_id, item):
         cursor.execute(database.create_item_sql, (item['ItemCode'], order_id, item['Quantity']))
     except:
         pass
+
+
+def create_trip_function():
+
+
+    cursor.execute(database.create_trip_sql, ("FIRST_TRIP","start", "end", 10, 10, datetime.date.today(), "carrier code"))
+
+    #some logic
+
+    # database.create_trip_order_ref_sql
+
+    # trip = {
+    #     "ID": "",
+    #     "start": "",
+    #     "end": "",
+    #     "distance": "",
+    #     "fuel": "",
+    #     "planned date": "",
+    #     "orderIDs": [],
+    #     "carrier code": ""
+    # }
 
 
 @app.route('/place_order', methods=['POST'])
@@ -183,6 +206,22 @@ def all_orders():
 
             return all_orders_dict
 
+
+@app.route('/create_trip', methods=['POST'])
+def create_trip():
+    auth_gotten = request.authorization
+    
+    if auth_gotten == None:
+        return Response(status=401)
+    else:
+        
+        if USERNAME != auth_gotten['username'] or PASSWORD != auth_gotten['password']:
+            return Response(status=401)
+        else:
+
+            create_trip_function()
+
+            return Response(status=202) 
 
 if __name__ == "__main__":
     app.run(debug=False)
